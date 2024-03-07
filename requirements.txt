@@ -1,0 +1,7 @@
+flask~=2.2.2
+pymongo~=4.3.2
+pyjwt
+requests
+python-docx
+openpyxl~=3.0.10
+xlrd~=1.2.0
