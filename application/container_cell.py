@@ -1,5 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from pymongo import MongoClient
+import json
+import datetime
 from application.util.util_container import search_cell
 bp = Blueprint('container_bp', __name__, url_prefix='')
 
@@ -9912,8 +9914,8 @@ def get_container_data():
                 ]
         for i in mongodb:
             del i['_id']
-            pos = i['位置'].split('/')
-            i['position'] = int(pos[6])
+            pos = i['位置'].split('/')[1:]
+            i['POS'] = int(pos[6])
             result = search_cell(result,pos,i)
         if result:
             res = {'data':result}
@@ -9936,8 +9938,7 @@ def del_container_data():
     """
         删除指定数据库样本
         {
-            position: 1,
-            样本复份编号: 'xxxxxxx',
+            位置: 1,
             样本源编号: 'xxxxxx',
             样本源姓名: '王*',
             样本类型: 'xxxx',
@@ -9953,21 +9954,20 @@ def del_container_data():
         2. 审批后（样本状态:'正常');
     """
     data = {}
-    data['position'] = request.form['position']
-    data['样本复份编号'] = request.form['样本复份编号']
     data['样本源编号'] = request.form['样本源编号']
-    data['样本源姓名'] = request.form['样本源姓名']
-    data['样本类型'] = request.form['样本类型']
-    data['所属样本组'] = request.form['所属样本组']
-    data['样本量'] = request.form['样本量']
-    data['入库时间'] = request.form['入库时间']
     data['用户信息'] = request.form['name']
-    data['样本状态']='待审批'
-    data['操作']='样本删除'
     client = MongoClient(host='localhost', port=27017)
-
     try:
-        result = client['bioSample']['examine'].insert_one(data)
+        result = client['bioSample']['container'].find({
+            '样本源编号':data['样本源编号'],
+        })
+        choose_data = result[0]
+        del choose_data['_id']
+        choose_data['用户信息'] = data['用户信息']
+        choose_data['样本状态'] = '废弃审核中'
+        choose_data['操作'] = '样本废弃'
+
+        client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
         status = "200 OK"
        
@@ -9980,44 +9980,19 @@ def del_container_data():
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
 
-
+# 待入库样本查询
 @bp.route('/container_cell/add/', methods=['POST'])
 def add_container_cell():
-    """
-        加入数据库样本
-        {
-            position: 1,
-            样本复份编号: 'xxxxxxx',
-            样本源编号: 'xxxxxx',
-            样本源姓名: '王*',
-            样本类型: 'xxxx',
-            所属样本组: 'xxxxxxxxxx',
-            样本量: 'xxxxx',
-            入库时间: 'xxxxxxxx',
-        }
-        用户信息
-        {
-            name
-        }
-        1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
-        2. 审批后（样本状态:'正常');
-    """
-    data = {}
-    data['position'] = request.form['position']
-    data['样本复份编号'] = request.form['样本复份编号']
-    data['样本源编号'] = request.form['样本源编号']
-    data['样本源姓名'] = request.form['样本源姓名']
-    data['样本类型'] = request.form['样本类型']
-    data['所属样本组'] = request.form['所属样本组']
-    data['样本量'] = request.form['样本量']
-    data['入库时间'] = request.form['入库时间']
-    data['用户信息'] = request.form['name']
-    data['样本状态']='待审批'
-    data['操作']='样本入库'
     client = MongoClient(host='localhost', port=27017)
     try:
-        result = client['bioSample']['examine'].insert_one(data)
-        res = {"result": "上传数据成功"}
+        result = client['bioSample']['collections'].find({
+            '接收状态':'已完成'
+        })
+        data = []
+        for i in result:
+            del i['_id']
+            data.append(i)
+        res = {"result": data}
         status = "200 OK"
     except Exception as err:
         res = {"error": "服务器错误" + str(err)}
@@ -10028,6 +10003,66 @@ def add_container_cell():
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
 
-# @bp.route('/container_cell/trans/', methods=['POST'])
-# def trans_contaniner_cell():
-    
+#样本入库审核
+@bp.route('/container_cell/storage/', methods=['POST'])
+def storage_container_cell():
+    """
+        加入数据库样本
+        用户信息
+        {
+            name
+        }
+        1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
+        2. 审批后（样本状态:'正常');
+    """
+    data = {}
+    data['位置'] = request.form['位置']
+    data['样本源编号'] = request.form['样本源编号']
+    data['用户信息'] = request.form['name']
+    client = MongoClient(host='localhost', port=27017)
+    try:
+        newData = {"$set":{
+            '入库状态':'审核中'
+        }}
+        client['bioSample']['collections'].update_many({
+            '样本源编号':data['样本源编号'],
+        },newData)
+        result = client['bioSample']['collections'].find({
+            '样本源编号':data['样本源编号'],
+        })
+        change_data = result[0]
+        del change_data['_id']
+        change_data['位置'] = data['位置']
+        change_data['用户信息'] = data['用户信息']
+        change_data['操作'] = '样本入库'
+        client['bioSample']['examine'].insert_one(change_data)
+        res = {"result": 'success'}
+        status = "200 OK"
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+
+    resp = make_response(jsonify(res))
+    resp.status = status
+    resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
+    return resp
+
+
+@bp.route('/container_cell/trans/', methods=['POST'])
+def trans_contaniner_cell():
+    oldData = json.loads(request.json.get('oldData'))
+    newData = json.loads(request.json.get('newData'))
+    if oldData['样本类型'] != '暂无' & newData['样本类型'] == '暂无':
+        
+        newData = {"$set":{'位置':newData['位置'][1:]}}
+        # result = client['bioSample']['container'].insert_one(oldData)
+        client = MongoClient(host='localhost', port=27017)
+        print({'位置':oldData['位置']}, newData)
+        client['bioSample']['container'].update_one({'位置':oldData['位置']}, newData)
+
+        res = {"result": "上传数据成功"}
+        status = "200 OK"
+        resp = make_response(jsonify(res))
+        resp.status = status
+        resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
+        return resp

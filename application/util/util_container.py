@@ -12,16 +12,4 @@ def search_cell(tree, position, data):
                                             for tree6 in tree5['children']:
                                                 if tree6['label'] == position[5]:
                                                     tree6['cells'].append(data)
-                                                else:
-                                                    break
-                                        else:
-                                            break
-                                else:
-                                    break
-                        else:
-                            break
-                else:
-                    break
-        else:
-            break
     return tree
