@@ -9,7 +9,7 @@ class BaseConfig:
 class DevConfig(BaseConfig):
     """ 用于开发的配置类
     """
-    DB_HOST = 'localhost'
+    DB_HOST = '127.0.0.1'
     DB_PORT = 27017
     JENA_HOST = '127.0.0.1'
     JENA_PORT = 3030
