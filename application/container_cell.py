@@ -9956,6 +9956,12 @@ def del_container_data():
     data = {}
     data['样本源编号'] = request.form['样本源编号']
     data['用户信息'] = request.form['name']
+    data['申请人姓名'] = request.form['申请人姓名']
+    data['申请人联系方式'] = request.form['申请人联系方式']
+    data['废弃时间'] = request.form['废弃时间']
+    data['废弃原因'] = request.form['废弃原因']
+
+    
     client = MongoClient(host='localhost', port=27017)
     try:
         result = client['bioSample']['container'].find({
@@ -9964,8 +9970,13 @@ def del_container_data():
         choose_data = result[0]
         del choose_data['_id']
         choose_data['用户信息'] = data['用户信息']
-        choose_data['样本状态'] = '废弃审核中'
+        choose_data['入库状态'] = '审核中'
         choose_data['操作'] = '样本废弃'
+        choose_data['申请人姓名'] = data['申请人姓名']
+        choose_data['申请人联系方式'] = data['申请人联系方式']
+        choose_data['废弃时间'] = data['废弃时间']
+        choose_data['废弃原因'] = data['废弃原因']
+
 
         client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
@@ -9979,6 +9990,64 @@ def del_container_data():
     resp.status = status
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
+
+@bp.route('/container_cel/out/', methods=['POST'])
+def out_container_data():
+    """
+        出库指定数据库样本
+        {
+            样本源编号: 'xxxxxx',
+            样本源姓名: '王*',
+            样本类型: 'xxxx',
+            所属样本组: 'xxxxxxxxxx',
+            样本量: 'xxxxx',
+            入库时间: 'xxxxxxxx',
+        }
+        用户信息
+        {
+            name
+        }
+        1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
+        2. 审批后（样本状态:'正常');
+    """
+    data = {}
+    data['样本源编号'] = request.form['样本源编号']
+    data['用户信息'] = request.form['name']
+    data['申请人姓名'] = request.form['申请人姓名']
+    data['申请人联系方式'] = request.form['申请人联系方式']
+    data['出库时间'] = request.form['出库时间']
+    data['研究用途'] = request.form['研究用途']
+
+    
+    client = MongoClient(host='localhost', port=27017)
+    try:
+        result = client['bioSample']['container'].find({
+            '样本源编号':data['样本源编号'],
+        })
+        choose_data = result[0]
+        del choose_data['_id']
+        choose_data['用户信息'] = data['用户信息']
+        choose_data['入库状态'] = '审核中'
+        choose_data['操作'] = '样本出库'
+        choose_data['申请人姓名'] = data['申请人姓名']
+        choose_data['申请人联系方式'] = data['申请人联系方式']
+        choose_data['出库时间'] = data['出库时间']
+        choose_data['研究用途'] = data['研究用途']
+
+
+        client['bioSample']['examine'].insert_one(choose_data)
+        res = {"result": "上传数据成功"}
+        status = "200 OK"
+       
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+
+    resp = make_response(res)
+    resp.status = status
+    resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
+    return resp
+
 
 # 待入库样本查询
 @bp.route('/container_cell/add/', methods=['POST'])
@@ -10052,13 +10121,24 @@ def storage_container_cell():
 def trans_contaniner_cell():
     oldData = json.loads(request.json.get('oldData'))
     newData = json.loads(request.json.get('newData'))
-    if oldData['样本类型'] != '暂无' & newData['样本类型'] == '暂无':
+    if oldData['样本类型'] != '暂无' and newData['样本类型'] == '暂无':
         
-        newData = {"$set":{'位置':newData['位置'][1:]}}
-        # result = client['bioSample']['container'].insert_one(oldData)
         client = MongoClient(host='localhost', port=27017)
-        print({'位置':oldData['位置']}, newData)
-        client['bioSample']['container'].update_one({'位置':oldData['位置']}, newData)
+        mongo = client['bioSample']['container'].find({
+            '样本源编号':oldData['样本源编号']
+        })
+        result = mongo[0]
+        del result['_id']
+        result['新位置'] = newData['位置']
+        result['用户信息'] = oldData['用户信息']
+        result['操作'] = '样本转移'
+        result['入库状态'] = '审核中'
+        client['bioSample']['examine'].insert_one(result)
+
+        # newData = {"$set":{'位置':newData['位置'][1:]}}
+        # # result = client['bioSample']['container'].insert_one(oldData)
+        # print({'位置':oldData['位置']}, newData)
+        # client['bioSample']['container'].update_one({'位置':oldData['位置']}, newData)
 
         res = {"result": "上传数据成功"}
         status = "200 OK"
