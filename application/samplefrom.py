@@ -79,12 +79,12 @@ def add_agreeFrom():
             "样本创建时间": "20240313",
         }
     """
-    fromId = request.json["样本源编号"]
+    fromId = request.form["样本源编号"]
     doc = {}
-    doc["性别"] = request.json["性别"]
-    doc["年龄"] = request.json["年龄"]
+    doc["性别"] = request.form["性别"]
+    doc["年龄"] = request.form["年龄"]
     doc["知情同意"] = "是"
-    doc["样本创建时间"] = request.json["样本创建时间"]
+    doc["样本创建时间"] = request.form["样本创建时间"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
@@ -149,9 +149,9 @@ def add_sampleFrom():
         2. 签订时补充个人信息，添加到知情同意列表（样本状态:'正常');
     """
     doc = {}
-    name = request.json["样本源姓名"]
-    type = request.json["样本源类型"]
-    hospital = request.json["采集医院"]
+    name = request.form["样本源姓名"]
+    type = request.form["样本源类型"]
+    hospital = request.form["采集医院"]
     id = sampleID(name,type,hospital)
     doc["样本源编号"] = id
     doc['样本源姓名'] = name

@@ -5,3 +5,4 @@ requests
 python-docx
 openpyxl~=3.0.10
 xlrd~=1.2.0
+pypinyin~=0.51.0

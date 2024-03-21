@@ -97,19 +97,19 @@ def add():
         更新collection表
     """
     doc = {}
-    doc["创建时间"] = request.json["创建时间"]
-    doc["年龄"] = request.json["年龄"]
-    doc["性别"] = request.json["性别"]
-    doc["样本源姓名"] = request.json["样本源姓名"]
-    doc["样本源类型"] = request.json["样本源类型"]
-    doc["样本源编号"] = request.json["样本源编号"]
-    doc["知情同意"] = request.json["知情同意"]
-    doc["编号类型"] = request.json["编号类型"]
-    doc["样本类型"] = request.json["样本类型"]
-    doc["样本量"] = request.json["样本量"]
-    doc["采集时间"] = request.json["采集时间"]
-    doc["采集医院"] = request.json["采集医院"]
-    doc["预处理"] = request.json["预处理"]
+    doc["创建时间"] = request.form["创建时间"]
+    doc["年龄"] = request.form["年龄"]
+    doc["性别"] = request.form["性别"]
+    doc["样本源姓名"] = request.form["样本源姓名"]
+    doc["样本源类型"] = request.form["样本源类型"]
+    doc["样本源编号"] = request.form["样本源编号"]
+    doc["知情同意"] = request.form["知情同意"]
+    doc["编号类型"] = request.form["编号类型"]
+    doc["样本类型"] = request.form["样本类型"]
+    doc["样本量"] = request.form["样本量"]
+    doc["采集时间"] = request.form["采集时间"]
+    doc["采集医院"] = request.form["采集医院"]
+    doc["预处理"] = request.form["预处理"]
     doc["采集状态"] = "未知"
     doc["运输状态"] = "未知"
     doc["接收状态"] = "未知"

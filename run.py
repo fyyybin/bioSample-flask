@@ -3,10 +3,10 @@ import logging
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='127.0.0.1', port=5002, debug=True)
+    app.run(host='127.0.0.1', port=5001, debug=True)
 
-if __name__ != "__main__":
-    app = create_app()
-    gunicorn_logger = logging.getLogger("gunicorn.error")    
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
+# if __name__ != "__main__":
+#     app = create_app()
+#     gunicorn_logger = logging.getLogger("gunicorn.error")    
+#     app.logger.handlers = gunicorn_logger.handlers
+#     app.logger.setLevel(gunicorn_logger.level)
