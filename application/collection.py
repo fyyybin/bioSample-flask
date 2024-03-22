@@ -55,14 +55,14 @@ def complete():
         2、修改采集状态
     """
     doc = {}
-    doc["样本源编号"] = request.json["样本源编号"]
-    doc["样本类型"] = request.json["样本类型"]
-    doc["采集医院"] = request.json["采集医院"]
+    doc["样本源编号"] = request.form["样本源编号"]
+    doc["样本类型"] = request.form["样本类型"]
+    date = request.form["采集时间"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
     try:
-        newvalues = { "$set": { "采集状态":"已完成" } }
+        newvalues = { "$set": { "采集状态":"已完成","采集时间": date } }
         col = client['bioSample']['collections']
         col.update_one(doc, newvalues)
         res = {"result": "修改数据成功"}
@@ -97,19 +97,18 @@ def add():
         更新collection表
     """
     doc = {}
-    doc["创建时间"] = request.json["创建时间"]
-    doc["年龄"] = request.json["年龄"]
-    doc["性别"] = request.json["性别"]
-    doc["样本源姓名"] = request.json["样本源姓名"]
-    doc["样本源类型"] = request.json["样本源类型"]
-    doc["样本源编号"] = request.json["样本源编号"]
-    doc["知情同意"] = request.json["知情同意"]
-    doc["编号类型"] = request.json["编号类型"]
-    doc["样本类型"] = request.json["样本类型"]
-    doc["样本量"] = request.json["样本量"]
-    doc["采集时间"] = request.json["采集时间"]
-    doc["采集医院"] = request.json["采集医院"]
-    doc["预处理"] = request.json["预处理"]
+    doc["样本创建时间"] = request.form["样本创建时间"]
+    doc["年龄"] = request.form["年龄"]
+    doc["性别"] = request.form["性别"]
+    doc["样本源姓名"] = request.form["样本源姓名"]
+    doc["样本源类型"] = request.form["样本源类型"]
+    doc["样本源编号"] = request.form["样本源编号"]
+    doc["知情同意"] = request.form["知情同意"]
+    doc["样本类型"] = request.form["样本类型"]
+    doc["样本量"] = request.form["样本量"]
+    doc["采集时间"] = request.form["采集时间"]
+    doc["采集医院"] = request.form["采集医院"]
+    doc["预处理"] = request.form["预处理"]
     doc["采集状态"] = "未知"
     doc["运输状态"] = "未知"
     doc["接收状态"] = "未知"
@@ -150,14 +149,13 @@ def transport():
         2、更新运输信息并修改运输状态
     """
     query = {}
-    query["样本源编号"] = request.json["样本源编号"]
-    query["样本类型"] = request.json["样本类型"]
-    query["采集医院"] = request.json["采集医院"]
+    query["样本源编号"] = request.form["样本源编号"]
+    query["样本类型"] = request.form["样本类型"]
     doc = {}
-    doc["运输方"] = request.json["运输方"]
-    doc["负责人"] = request.json["负责人"]
-    doc["负责人联系方式"] = request.json["负责人联系方式"]
-    doc["运出时间"] = request.json["运出时间"]
+    doc["运输方"] = request.form["运输方"]
+    doc["负责人"] = request.form["负责人"]
+    doc["负责人联系方式"] = request.form["负责人联系方式"]
+    doc["运出时间"] = request.form["运出时间"]
     doc["运输状态"] = "运输中"
     doc["接收状态"] = "未接收"
     client = MongoClient(
@@ -191,18 +189,16 @@ def accept():
             {
                 "样本源编号": "ZSFY-TT-21000009-K-03",
                 "样本类型": "细胞",
-                "采集医院": "台州医院"
             }
         2、更新接收信息并修改运输状态、接收状态
     """
     query = {}
-    query["样本源编号"] = request.json["样本源编号"]
-    query["样本类型"] = request.json["样本类型"]
-    query["采集医院"] = request.json["采集医院"]
+    query["样本源编号"] = request.form["样本源编号"]
+    query["样本类型"] = request.form["样本类型"]
     doc = {}
-    doc["接收人"] = request.json["接收人"]
-    doc["接收人联系方式"] = request.json["接收人联系方式"]
-    doc["接收时间"] = request.json["接收时间"]
+    doc["接收人"] = request.form["接收人"]
+    doc["接收人联系方式"] = request.form["接收人联系方式"]
+    doc["接收时间"] = request.form["接收时间"]
     doc["运输状态"] = "已完成"
     doc["接收状态"] = "已完成"
     doc["入库状态"] = "待入库"
@@ -235,9 +231,8 @@ def singleInfo():
         }
     """
     doc = {}
-    doc["样本源编号"] = request.json["样本源编号"]
-    doc["样本类型"] = request.json["样本类型"]
-    doc["采集医院"] = request.json["采集医院"]
+    doc["样本源编号"] = request.form["样本源编号"]
+    doc["样本类型"] = request.form["样本类型"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
