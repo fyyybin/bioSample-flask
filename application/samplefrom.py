@@ -80,10 +80,7 @@ def add_agreeFrom():
         }
     """
     fromId = request.form["样本源编号"]
-    fromId = request.form["样本源编号"]
     doc = {}
-    doc["性别"] = request.form["性别"]
-    doc["年龄"] = request.form["年龄"]
     doc["性别"] = request.form["性别"]
     doc["年龄"] = request.form["年龄"]
     doc["知情同意"] = "是"
@@ -146,6 +143,7 @@ def add_sampleFrom():
             样本源姓名: '王*',
             样本源类型: 'xxxx',
             采集医院： 'xxxxxx',
+            其他： '其他',
             知情同意：'否'
         }
         1. 先加入到样本源列表中，需要签订知情同意书（是否签订同意书：否）;
@@ -155,19 +153,20 @@ def add_sampleFrom():
     name = request.form["样本源姓名"]
     type = request.form["样本源类型"]
     hospital = request.form["采集医院"]
-    name = request.form["样本源姓名"]
-    type = request.form["样本源类型"]
-    hospital = request.form["采集医院"]
-    id = sampleID(name,type,hospital)
-    doc["样本源编号"] = id
-    doc['样本源姓名'] = name
-    doc['样本源类型'] = type
-    doc['采集医院'] = hospital
-    doc['知情同意'] = "否"
+    et = request.form["其他"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
     try:
+        query = { "样本源类型":type, "采集医院":hospital }
+        documents = client['bioSample']['samplefrom'].find(query,{"_id":0})  
+        id = sampleID(type,hospital,documents)
+        doc["样本源编号"] = id
+        doc['样本源姓名'] = name
+        doc['样本源类型'] = type
+        doc['采集医院'] = hospital
+        doc['知情同意'] = "否"
+        doc['其他'] = et
         client['bioSample']['samplefrom'].insert_one(doc)
         res = {"result": "上传数据成功"}
         status = "200 OK"

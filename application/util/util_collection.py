@@ -55,3 +55,32 @@ def transform_detail(doc):
             "接收人联系方式": doc.get("接收人联系方式",'-')
         }
     return dic
+
+
+# 样本统计
+def transform_static(document):
+    dic = {}
+    src = {
+        "浙江大学医学院附属第一医院": "/src/assets/hospitals/zj1h.jpg",
+        "浙江大学医学院附属第四医院": "/src/assets/hospitals/zj4h.jpg",
+        "台州医院": "/src/assets/hospitals/tzh.jpg",
+        "浙江大学医学院附属儿童医院": "/src/assets/hospitals/zjeb.jpg",
+    }
+    total = 0
+    input = 0
+    inputed = 0
+    for doc in document:
+        total+=1
+        if doc.get('入库状态'):
+            if doc.get('入库状态')=='待入库':
+                input += 1
+            else:
+                inputed += 1
+    dic = {
+        "name": doc.get('采集医院'),
+        "src": src[doc.get('采集医院')],
+        "total": total,
+        "input": input,
+        "inputed": inputed
+    }
+    return dic

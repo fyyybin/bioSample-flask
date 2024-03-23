@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from flask import Blueprint, current_app, request, make_response, jsonify
-from .util.util_collection import transform_cols, transform_detail
+from .util.util_collection import transform_cols, transform_detail, transform_static
 
 bp = Blueprint('collection', __name__, url_prefix='/collection')
 
@@ -267,6 +267,43 @@ def fromInfo(fromid):
         col = client['bioSample']['collections']
         document = col.find(query)
         res = {"data": transform_cols(document) }
+        status = "200 OK"
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+
+    resp = make_response(jsonify(res))
+    resp.status = status
+    return resp 
+
+# 按医院统计样本总数
+@bp.route('/hospital/', methods=['GET'])
+def hospitalInfo():
+    """
+        通过样本源编号、采集内容、采集医院查找要展示的样本
+        {
+            "采集医院": "台州医院",
+        }
+    """
+    query1 = { "采集医院": "浙江大学医学院附属第一医院" }
+    query2 = { "采集医院": "浙江大学医学院附属第四医院" }
+    query3 = { "采集医院": "台州医院" }
+    query4 = { "采集医院": "浙江大学医学院附属儿童医院" }
+    client = MongoClient(
+        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
+    )
+    try:
+        col = client['bioSample']['collections']
+        result1 = transform_static(col.find(query1,{"_id":0}))
+        result2 = transform_static(col.find(query2,{"_id":0}))
+        result3 = transform_static(col.find(query3,{"_id":0}))
+        result4 = transform_static(col.find(query4,{"_id":0}))
+        res = {"data": [
+            result1,
+            result2,
+            result3,
+            result4,
+        ] }
         status = "200 OK"
     except Exception as err:
         res = {"error": "服务器错误" + str(err)}
