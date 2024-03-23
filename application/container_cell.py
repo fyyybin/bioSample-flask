@@ -9953,32 +9953,24 @@ def del_container_data():
         1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
         2. 审批后（样本状态:'正常');
     """
-    data = {}
-    data['样本源编号'] = request.form['样本源编号']
-    data['用户信息'] = request.form['name']
-    data['申请人姓名'] = request.form['申请人姓名']
-    data['申请人联系方式'] = request.form['申请人联系方式']
-    data['废弃时间'] = request.form['废弃时间']
-    data['废弃原因'] = request.form['废弃原因']
-
-    
+    data = request.form
     client = MongoClient(host='localhost', port=27017)
     try:
-        result = client['bioSample']['container'].find({
-            '样本源编号':data['样本源编号'],
-        })
-        choose_data = result[0]
-        del choose_data['_id']
-        choose_data['用户信息'] = data['用户信息']
-        choose_data['入库状态'] = '审核中'
-        choose_data['操作'] = '样本废弃'
-        choose_data['申请人姓名'] = data['申请人姓名']
-        choose_data['申请人联系方式'] = data['申请人联系方式']
-        choose_data['废弃时间'] = data['废弃时间']
-        choose_data['废弃原因'] = data['废弃原因']
-
-
-        client['bioSample']['examine'].insert_one(choose_data)
+        for i in data:
+            if i not in ['name','申请人姓名','申请人联系方式','废弃时间','废弃原因']:
+                result = client['bioSample']['container'].find({
+                    '样本源编号':i,
+                })
+                choose_data = result[0]
+                del choose_data['_id']
+                choose_data['用户信息'] = data['name']
+                choose_data['入库状态'] = '审核中'
+                choose_data['操作'] = '样本废弃'
+                choose_data['申请人姓名'] = data['申请人姓名']
+                choose_data['申请人联系方式'] = data['申请人联系方式']
+                choose_data['废弃时间'] = data['废弃时间']
+                choose_data['废弃原因'] = data['废弃原因']
+                client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
         status = "200 OK"
        
@@ -10010,32 +10002,26 @@ def out_container_data():
         1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
         2. 审批后（样本状态:'正常');
     """
-    data = {}
-    data['样本源编号'] = request.form['样本源编号']
-    data['用户信息'] = request.form['name']
-    data['申请人姓名'] = request.form['申请人姓名']
-    data['申请人联系方式'] = request.form['申请人联系方式']
-    data['出库时间'] = request.form['出库时间']
-    data['研究用途'] = request.form['研究用途']
-
-    
+    data = request.form
     client = MongoClient(host='localhost', port=27017)
     try:
-        result = client['bioSample']['container'].find({
-            '样本源编号':data['样本源编号'],
-        })
-        choose_data = result[0]
-        del choose_data['_id']
-        choose_data['用户信息'] = data['用户信息']
-        choose_data['入库状态'] = '审核中'
-        choose_data['操作'] = '样本出库'
-        choose_data['申请人姓名'] = data['申请人姓名']
-        choose_data['申请人联系方式'] = data['申请人联系方式']
-        choose_data['出库时间'] = data['出库时间']
-        choose_data['研究用途'] = data['研究用途']
-
-
-        client['bioSample']['examine'].insert_one(choose_data)
+        for i in data:
+            print(i)
+            if i not in ['name','申请人姓名','申请人联系方式','出库时间','研究用途','样本组学检测']:
+                result = client['bioSample']['container'].find({
+                    '样本源编号':i,
+                })
+                choose_data = result[0]
+                del choose_data['_id']
+                choose_data['用户信息'] = data['name']
+                choose_data['入库状态'] = '审核中'
+                choose_data['操作'] = '样本出库'
+                choose_data['申请人姓名'] = data['申请人姓名']
+                choose_data['申请人联系方式'] = data['申请人联系方式']
+                choose_data['出库时间'] = data['出库时间']
+                choose_data['研究用途'] = data['研究用途']
+                choose_data['样本组学检测'] = data['样本组学检测']
+                client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
         status = "200 OK"
        
@@ -10084,27 +10070,26 @@ def storage_container_cell():
         1. 先加入到审批的库中，待管理员审批（样本状态:'待审批');
         2. 审批后（样本状态:'正常');
     """
-    data = {}
-    data['位置'] = request.form['位置']
-    data['样本源编号'] = request.form['样本源编号']
-    data['用户信息'] = request.form['name']
+    data = request.form
     client = MongoClient(host='localhost', port=27017)
     try:
-        newData = {"$set":{
-            '入库状态':'审核中'
-        }}
-        client['bioSample']['collections'].update_many({
-            '样本源编号':data['样本源编号'],
-        },newData)
-        result = client['bioSample']['collections'].find({
-            '样本源编号':data['样本源编号'],
-        })
-        change_data = result[0]
-        del change_data['_id']
-        change_data['位置'] = data['位置']
-        change_data['用户信息'] = data['用户信息']
-        change_data['操作'] = '样本入库'
-        client['bioSample']['examine'].insert_one(change_data)
+        for cell in data:
+            if cell != 'name':
+                newData = {"$set":{
+                    '入库状态':'审核中'
+                }}
+                client['bioSample']['collections'].update_many({
+                    '样本源编号':cell,
+                },newData)
+                result = client['bioSample']['collections'].find({
+                    '样本源编号':cell,
+                })
+                change_data = result[0]
+                del change_data['_id']
+                change_data['位置'] = data[cell]
+                change_data['用户信息'] = data['name']
+                change_data['操作'] = '样本入库'
+                client['bioSample']['examine'].insert_one(change_data)
         res = {"result": 'success'}
         status = "200 OK"
     except Exception as err:
@@ -10119,17 +10104,38 @@ def storage_container_cell():
 
 @bp.route('/container_cell/trans/', methods=['POST'])
 def trans_contaniner_cell():
+    """
+        oldData:{
+            '样本信息':[
+                {
+                    sanmple1,
+                    sample2
+                }
+            ],
+            '用户信息': name
+        }
+        newData:{
+            '样本信息':[
+                {
+                    sanmple1,
+                    sample2
+                }
+            ],
+            '位置': pos
+        }
+    """
+
     oldData = json.loads(request.json.get('oldData'))
     newData = json.loads(request.json.get('newData'))
-    if oldData['样本类型'] != '暂无' and newData['样本类型'] == '暂无':
-        
-        client = MongoClient(host='localhost', port=27017)
+    client = MongoClient(host='localhost', port=27017)
+
+    for index in range(len(oldData['样本信息'])):
         mongo = client['bioSample']['container'].find({
-            '样本源编号':oldData['样本源编号']
+            '样本源编号':oldData['样本信息'][index]['样本源编号']
         })
         result = mongo[0]
         del result['_id']
-        result['新位置'] = newData['位置']
+        result['新位置'] = newData['位置'] + '/' + str(newData['样本信息'][index]['POS'])
         result['用户信息'] = oldData['用户信息']
         result['操作'] = '样本转移'
         result['入库状态'] = '审核中'
@@ -10140,9 +10146,9 @@ def trans_contaniner_cell():
         # print({'位置':oldData['位置']}, newData)
         # client['bioSample']['container'].update_one({'位置':oldData['位置']}, newData)
 
-        res = {"result": "上传数据成功"}
-        status = "200 OK"
-        resp = make_response(jsonify(res))
-        resp.status = status
-        resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
-        return resp
+    res = {"result": "上传数据成功"}
+    status = "200 OK"
+    resp = make_response(jsonify(res))
+    resp.status = status
+    resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
+    return resp

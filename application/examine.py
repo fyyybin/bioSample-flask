@@ -19,22 +19,24 @@ def get_container_data():
             mongodb = client['bioSample']['examine'].find({
                 '用户信息':name,
             })
-            result = []
-            for i in mongodb:
-                del i['_id']
-                result.append(i)
+            if mongodb:
+                result = []
+                for i in mongodb:
+                    del i['_id']
+                    result.append(i)
         else:
             mongodb = client['bioSample']['examine'].find()
             result = []
-            for i in mongodb:
-                del i['_id']
-                result.append(i)
+            if mongodb:
+                for i in mongodb:
+                    del i['_id']
+                    result.append(i)
         if result:
             res = {'result':result}
             status = '200 OK'
         else:
             res = {"error": "没有找到对应的数据"}
-            status = '403 Forbidden'
+            status = '200 OK'
        
     except Exception as err:
         res = {"error": "服务器错误" + str(err)}
@@ -75,7 +77,6 @@ def examine_data():
                     '操作':operation,
                     '用户信息':username
                 })
-
                 result = []
                 for i in mongo:
                     del i['_id']
@@ -91,7 +92,6 @@ def examine_data():
                     del i['接收时间']
                     del i['用户信息']
                     del i['操作']
-
                     i['入库时间'] = datetime.datetime.fromtimestamp(1234567896)
                     result.append(i)
                 if result:
@@ -119,10 +119,20 @@ def examine_data():
                     '用户信息':username
                 },newData)
 
-                # 删除 入库数据库的数据
-                client['bioSample']['container'].delete_one({
+                mongo = client['bioSample']['examine'].find({
                     '样本源编号':ynb_num,
+                    '操作':operation,
+                    '用户信息':username
                 })
+                choose_data = mongo[0]
+                del choose_data['_id']
+                # 若为验证分析即删除，若为组学分析加入 分析数据库
+                if choose_data['研究用途'] == '组织细胞分子等实验验证':
+                    client['bioSample']['container'].delete_one({
+                        '样本源编号':ynb_num,
+                    })
+                else:
+                    client['bioSample']['analyze'].insert_one(choose_data)
             else:
                 newData = {"$set":{
                 '入库状态':'审核拒绝'
@@ -215,3 +225,50 @@ def examine_del():
     resp.status = status
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
+
+
+
+@bp.route('/hosSearch/', methods=['POST'])
+def hosSearch():
+    client = MongoClient(host='localhost', port=27017)
+    examine = client['bioSample']['examine'].find()
+    container = client['bioSample']['container'].find()
+    analyse = client['bioSample']['analyse'].find()
+
+    examine_nums, container_nums,analyse_nums = [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]
+    for item in examine:
+        if item['入库状态'] == '审核中' and item['操作'] == '样本入库':
+            if item['采集医院'] == '浙江大学医学院附属第一医院':
+                examine_nums[0] += 1
+            elif item['采集医院'] == '浙江大学医学院附属第四医院':
+                examine_nums[1] += 1
+            elif item['采集医院'] == '台州医院':
+                examine_nums[2] += 1
+            elif item['采集医院'] == '浙江大学医学院附属儿童医院':
+                examine_nums[3] += 1
+    for item in container:
+        if item['采集医院'] == '浙江大学医学院附属第一医院':
+            container_nums[0] += 1
+        elif item['采集医院'] == '浙江大学医学院附属第四医院':
+            container_nums[1] += 1
+        elif item['采集医院'] == '台州医院':
+            container_nums[2] += 1
+        elif item['采集医院'] == '浙江大学医学院附属儿童医院':
+            container_nums[3] += 1
+    for item in analyse:
+        if item['采集医院'] == '浙江大学医学院附属第一医院':
+            analyse_nums[0] += 1
+        elif item['采集医院'] == '浙江大学医学院附属第四医院':
+            analyse_nums[1] += 1
+        elif item['采集医院'] == '台州医院':
+            analyse_nums[2] += 1
+        elif item['采集医院'] == '浙江大学医学院附属儿童医院':
+            analyse_nums[3] += 1
+    res = {'result':{'待入库':examine_nums, '已入库': container_nums, '测序中': analyse_nums}}
+    status = '200 OK'
+    resp = make_response(jsonify(res))
+    resp.status = status
+    resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
+    return resp
+
+
