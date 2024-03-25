@@ -35,6 +35,86 @@ def all_sampleFrom():
     resp.status = status
     return resp
 
+# 新增样本源
+@bp.route('/add/', methods=['POST'])
+def add_sampleFrom():
+    """
+        加入数据库样本源
+        {
+            样本源编号: 'xxxxxx',
+            样本源姓名: '王*',
+            样本源类型: 'xxxx',
+            采集医院： 'xxxxxx',
+            知情同意：'否'
+        }
+        1. 先加入到样本源列表中，需要签订知情同意书（是否签订同意书：否）;
+        2. 签订时补充个人信息，添加到知情同意列表（样本状态:'正常');
+    """
+    doc = {}
+    name = request.form["样本源姓名"]
+    type = request.form["样本源类型"]
+    hospital = request.form["采集医院"]
+    client = MongoClient(
+        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
+    )
+    try:
+        query = { "样本源类型":type, "采集医院":hospital }
+        documents = client['bioSample']['samplefrom'].find(query,{"_id":0})  
+        id = sampleID(type,hospital,documents)
+        doc["样本源编号"] = id
+        doc['样本源姓名'] = name
+        doc['样本源类型'] = type
+        doc['采集医院'] = hospital
+        doc['知情同意'] = "否"
+        client['bioSample']['samplefrom'].insert_one(doc)
+        res = {"result": "上传数据成功"}
+        status = "200 OK"
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+
+    resp = make_response(jsonify(res))
+    resp.status = status
+    return resp
+
+# 知情同意更新数据
+@bp.route('/agree/add/', methods=['POST'])
+def add_agreeFrom():
+    """
+        1、通过样本源编号查找要修改的样本源
+            { 样本源编号: fromId }
+        2、更新集合中的数据
+        {
+            "性别": "男",
+            "年龄": "34",
+            "知情同意": "是",
+            "样本创建时间": "20240313",
+        }
+    """
+    fromId = request.form["样本源编号"]
+    doc = {}
+    doc["性别"] = request.form["性别"]
+    doc["年龄"] = request.form["年龄"]
+    doc["知情同意"] = "是"
+    doc["样本创建时间"] = request.form["创建时间"]
+    client = MongoClient(
+        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
+    )
+    try:
+        query = { "样本源编号": fromId }
+        newvalues = { "$set": doc }
+        col = client['bioSample']['samplefrom']
+        col.update_one(query, newvalues)
+        res = {"result": "上传数据成功"}
+        status = "200 OK"
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+
+    resp = make_response(jsonify(res))
+    resp.status = status
+    return resp  
+
 # 所有可进行采集的样本源
 @bp.route('/agree/',methods=['GET'])
 def all_agreeFrom():
@@ -65,47 +145,7 @@ def all_agreeFrom():
     resp.status = status
     return resp
 
-# 知情同意更新数据
-@bp.route('/agree/add/', methods=['POST'])
-def add_agreeFrom():
-    """
-        1、通过样本源编号查找要修改的样本源
-            { 样本源编号: fromId }
-        2、更新集合中的数据
-        {
-            "性别": "男",
-            "年龄": "34",
-            "知情同意": "是",
-            "样本创建时间": "20240313",
-        }
-    """
-    fromId = request.form["样本源编号"]
-    fromId = request.form["样本源编号"]
-    doc = {}
-    doc["性别"] = request.form["性别"]
-    doc["年龄"] = request.form["年龄"]
-    doc["性别"] = request.form["性别"]
-    doc["年龄"] = request.form["年龄"]
-    doc["知情同意"] = "是"
-    doc["样本创建时间"] = request.form["创建时间"]
-    client = MongoClient(
-        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
-    )
-    try:
-        query = { "样本源编号": fromId }
-        newvalues = { "$set": doc }
-        col = client['bioSample']['samplefrom']
-        col.update_one(query, newvalues)
-        res = {"result": "上传数据成功"}
-        status = "200 OK"
-    except Exception as err:
-        res = {"error": "服务器错误" + str(err)}
-        status = '500 ServerError'
 
-    resp = make_response(jsonify(res))
-    resp.status = status
-    return resp  
-    
 # 样本源所有采集信息
 @bp.route('/info/', methods=['GET'])
 def singleInfo():
@@ -134,50 +174,6 @@ def singleInfo():
     resp = make_response(jsonify(res))
     resp.status = status
     return resp 
-
-
-# 新增样本源
-@bp.route('/add/', methods=['POST'])
-def add_sampleFrom():
-    """
-        加入数据库样本源
-        {
-            样本源编号: 'xxxxxx',
-            样本源姓名: '王*',
-            样本源类型: 'xxxx',
-            采集医院： 'xxxxxx',
-            知情同意：'否'
-        }
-        1. 先加入到样本源列表中，需要签订知情同意书（是否签订同意书：否）;
-        2. 签订时补充个人信息，添加到知情同意列表（样本状态:'正常');
-    """
-    doc = {}
-    name = request.form["样本源姓名"]
-    type = request.form["样本源类型"]
-    hospital = request.form["采集医院"]
-    name = request.form["样本源姓名"]
-    type = request.form["样本源类型"]
-    hospital = request.form["采集医院"]
-    id = sampleID(name,type,hospital)
-    doc["样本源编号"] = id
-    doc['样本源姓名'] = name
-    doc['样本源类型'] = type
-    doc['采集医院'] = hospital
-    doc['知情同意'] = "否"
-    client = MongoClient(
-        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
-    )
-    try:
-        client['bioSample']['samplefrom'].insert_one(doc)
-        res = {"result": "上传数据成功"}
-        status = "200 OK"
-    except Exception as err:
-        res = {"error": "服务器错误" + str(err)}
-        status = '500 ServerError'
-
-    resp = make_response(jsonify(res))
-    resp.status = status
-    return resp
 
 # 样本源筛选
 @bp.route('/<fromtype>/', methods=["GET"])
