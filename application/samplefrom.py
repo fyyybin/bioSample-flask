@@ -35,32 +35,44 @@ def all_sampleFrom():
     resp.status = status
     return resp
 
-# 所有可进行采集的样本源
-@bp.route('/agree/',methods=['GET'])
-def all_agreeFrom():
+# 新增样本源
+@bp.route('/add/', methods=['POST'])
+def add_sampleFrom():
     """
-        读取数据库中的所有知情同意为 “是” 的样本源
+        加入数据库样本源
         {
-            "样本源编号": "ZSFY-TT-21000009-K-01",
-            "样本源姓名": "王*",
-            "性别": "男",
-            "年龄": "45",
-            "样本创建时间": "20240102",
-            "样本源类型": "肥胖症",
-            "知情同意": "是"
+            样本源编号: 'xxxxxx',
+            样本源姓名: '王*',
+            样本源类型: 'xxxx',
+            采集医院： 'xxxxxx',
+            知情同意：'否'
         }
+        1. 先加入到样本源列表中，需要签订知情同意书（是否签订同意书：否）;
+        2. 签订时补充个人信息，添加到知情同意列表（样本状态:'正常');
     """
+    doc = {}
+    name = request.form["样本源姓名"]
+    type = request.form["样本源类型"]
+    hospital = request.form["采集医院"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
     try:
-        document = client['bioSample']['samplefrom'].find({"知情同意":"是"})
-        result = transform_from(document)
-        res = { "data": result, "total": len(result) }
+        query = { "样本源类型":type, "采集医院":hospital }
+        documents = client['bioSample']['samplefrom'].find(query,{"_id":0})  
+        id = sampleID(type,hospital,documents)
+        doc["样本源编号"] = id
+        doc['样本源姓名'] = name
+        doc['样本源类型'] = type
+        doc['采集医院'] = hospital
+        doc['知情同意'] = "否"
+        client['bioSample']['samplefrom'].insert_one(doc)
+        res = {"result": "上传数据成功"}
         status = "200 OK"
     except Exception as err:
         res = {"error": "服务器错误" + str(err)}
         status = '500 ServerError'
+
     resp = make_response(jsonify(res))
     resp.status = status
     return resp
@@ -102,7 +114,38 @@ def add_agreeFrom():
     resp = make_response(jsonify(res))
     resp.status = status
     return resp  
-    
+
+# 所有可进行采集的样本源
+@bp.route('/agree/',methods=['GET'])
+def all_agreeFrom():
+    """
+        读取数据库中的所有知情同意为 “是” 的样本源
+        {
+            "样本源编号": "ZSFY-TT-21000009-K-01",
+            "样本源姓名": "王*",
+            "性别": "男",
+            "年龄": "45",
+            "样本创建时间": "20240102",
+            "样本源类型": "肥胖症",
+            "知情同意": "是"
+        }
+    """
+    client = MongoClient(
+        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
+    )
+    try:
+        document = client['bioSample']['samplefrom'].find({"知情同意":"是"})
+        result = transform_from(document)
+        res = { "data": result, "total": len(result) }
+        status = "200 OK"
+    except Exception as err:
+        res = {"error": "服务器错误" + str(err)}
+        status = '500 ServerError'
+    resp = make_response(jsonify(res))
+    resp.status = status
+    return resp
+
+
 # 样本源所有采集信息
 @bp.route('/info/', methods=['GET'])
 def singleInfo():
@@ -131,52 +174,6 @@ def singleInfo():
     resp = make_response(jsonify(res))
     resp.status = status
     return resp 
-
-
-# 新增样本源
-@bp.route('/add/', methods=['POST'])
-def add_sampleFrom():
-    """
-        加入数据库样本源
-        {
-            样本源编号: 'xxxxxx',
-            样本源姓名: '王*',
-            样本源类型: 'xxxx',
-            采集医院： 'xxxxxx',
-            其他： '其他',
-            知情同意：'否'
-        }
-        1. 先加入到样本源列表中，需要签订知情同意书（是否签订同意书：否）;
-        2. 签订时补充个人信息，添加到知情同意列表（样本状态:'正常');
-    """
-    doc = {}
-    name = request.form["样本源姓名"]
-    type = request.form["样本源类型"]
-    hospital = request.form["采集医院"]
-    et = request.form["其他"]
-    client = MongoClient(
-        host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
-    )
-    try:
-        query = { "样本源类型":type, "采集医院":hospital }
-        documents = client['bioSample']['samplefrom'].find(query,{"_id":0})  
-        id = sampleID(type,hospital,documents)
-        doc["样本源编号"] = id
-        doc['样本源姓名'] = name
-        doc['样本源类型'] = type
-        doc['采集医院'] = hospital
-        doc['知情同意'] = "否"
-        doc['其他'] = et
-        client['bioSample']['samplefrom'].insert_one(doc)
-        res = {"result": "上传数据成功"}
-        status = "200 OK"
-    except Exception as err:
-        res = {"error": "服务器错误" + str(err)}
-        status = '500 ServerError'
-
-    resp = make_response(jsonify(res))
-    resp.status = status
-    return resp
 
 # 样本源筛选
 @bp.route('/<fromtype>/', methods=["GET"])

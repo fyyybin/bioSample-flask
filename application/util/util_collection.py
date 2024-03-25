@@ -4,6 +4,7 @@ def transform_cols(documents):
     for doc in documents:
         dic.append({
             "样本源编号": doc.get("样本源编号",'-'),
+            "样本编号": doc.get("样本编号",'-'),
             "样本源姓名": doc.get("样本源姓名",'-'),
             "样本源类型": doc.get("样本源类型",'-'),
             "年龄": doc.get("年龄",'-'),
@@ -12,8 +13,9 @@ def transform_cols(documents):
             "知情同意": doc.get("知情同意",'-'),
             "采集时间": doc.get("采集时间",'-'),
             "采集医院": doc.get("采集医院",'-'),
-            "样本类型": doc.get("样本类型",'-'),
+            "研究用途": doc.get("研究用途",'-'),
             "样本量": doc.get("样本量"),
+            "样本数量": doc.get("样本数量"),
             "预处理": doc.get("预处理",'-'),
             "采集状态": doc.get("采集状态",'-'),
             "运输方": doc.get("运输方",'-'),
@@ -32,6 +34,7 @@ def transform_cols(documents):
 def transform_detail(doc):
     dic = {
             "样本源编号": doc.get("样本源编号",'-'),
+            "样本编号": doc.get("样本编号",'-'),
             "样本源姓名": doc.get("样本源姓名",'-'),
             "样本源类型": doc.get("样本源类型",'-'),
             "年龄": doc.get("年龄",'-'),
@@ -40,8 +43,9 @@ def transform_detail(doc):
             "知情同意": doc.get("知情同意",'-'),
             "采集时间": doc.get("采集时间",'-'),
             "采集医院": doc.get("采集医院",'-'),
-            "样本类型": doc.get("样本类型",'-'),
+            "研究用途": doc.get("研究用途",'-'),
             "样本量": doc.get("样本量"),
+            "样本数量": doc.get("样本数量"),
             "预处理": doc.get("预处理",'-'),
             "采集状态": doc.get("采集状态",'-'),
             "运输方": doc.get("运输方",'-'),
@@ -56,9 +60,12 @@ def transform_detail(doc):
         }
     return dic
 
+# 样本编号
+def transform_id(id,number,date):
+    return id+'-'+date+'-'+str(number+1)
 
 # 样本统计
-def transform_static(document):
+def transform_static(document,name):
     dic = {}
     src = {
         "浙江大学医学院附属第一医院": "/src/assets/hospitals/zj1h.jpg",
@@ -69,16 +76,17 @@ def transform_static(document):
     total = 0
     input = 0
     inputed = 0
-    for doc in document:
-        total+=1
-        if doc.get('入库状态'):
-            if doc.get('入库状态')=='待入库':
-                input += 1
-            else:
-                inputed += 1
+    if document.alive:
+        for doc in document:
+            total+=1
+            if doc.get('入库状态'):
+                if doc.get('入库状态')=='待入库':
+                    input += 1
+                else:
+                    inputed += 1
     dic = {
-        "name": doc.get('采集医院'),
-        "src": src[doc.get('采集医院')],
+        "name": name,
+        "src": src[name],
         "total": total,
         "input": input,
         "inputed": inputed
