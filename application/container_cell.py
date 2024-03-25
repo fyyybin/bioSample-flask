@@ -2,6 +2,7 @@ from flask import Blueprint, request, make_response, jsonify
 from pymongo import MongoClient
 import json
 import datetime
+import time
 from application.util.util_container import search_cell
 bp = Blueprint('container_bp', __name__, url_prefix='')
 
@@ -9939,7 +9940,7 @@ def del_container_data():
         删除指定数据库样本
         {
             位置: 1,
-            样本源编号: 'xxxxxx',
+            样本编号: 'xxxxxx',
             样本源姓名: '王*',
             样本类型: 'xxxx',
             所属样本组: 'xxxxxxxxxx',
@@ -9954,12 +9955,15 @@ def del_container_data():
         2. 审批后（样本状态:'正常');
     """
     data = request.form
+    now = datetime.datetime.now()
+    outTime = now.strftime("%Y-%m-%d %H:%M:%S")
+
     client = MongoClient(host='localhost', port=27017)
     try:
         for i in data:
             if i not in ['name','申请人姓名','申请人联系方式','废弃时间','废弃原因']:
                 result = client['bioSample']['container'].find({
-                    '样本源编号':i,
+                    '样本编号':i,
                 })
                 choose_data = result[0]
                 del choose_data['_id']
@@ -9970,6 +9974,8 @@ def del_container_data():
                 choose_data['申请人联系方式'] = data['申请人联系方式']
                 choose_data['废弃时间'] = data['废弃时间']
                 choose_data['废弃原因'] = data['废弃原因']
+                
+                choose_data['审批时间'] = outTime
                 client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
         status = "200 OK"
@@ -9988,7 +9994,7 @@ def out_container_data():
     """
         出库指定数据库样本
         {
-            样本源编号: 'xxxxxx',
+            样本编号: 'xxxxxx',
             样本源姓名: '王*',
             样本类型: 'xxxx',
             所属样本组: 'xxxxxxxxxx',
@@ -10003,13 +10009,14 @@ def out_container_data():
         2. 审批后（样本状态:'正常');
     """
     data = request.form
+    now = datetime.datetime.now()
+    outTime = now.strftime("%Y-%m-%d %H:%M:%S")
     client = MongoClient(host='localhost', port=27017)
     try:
         for i in data:
-            print(i)
             if i not in ['name','申请人姓名','申请人联系方式','出库时间','研究用途','样本组学检测']:
                 result = client['bioSample']['container'].find({
-                    '样本源编号':i,
+                    '样本编号':i,
                 })
                 choose_data = result[0]
                 del choose_data['_id']
@@ -10021,6 +10028,7 @@ def out_container_data():
                 choose_data['出库时间'] = data['出库时间']
                 choose_data['研究用途'] = data['研究用途']
                 choose_data['样本组学检测'] = data['样本组学检测']
+                choose_data['审批时间'] = outTime
                 client['bioSample']['examine'].insert_one(choose_data)
         res = {"result": "上传数据成功"}
         status = "200 OK"
@@ -10046,6 +10054,7 @@ def add_container_cell():
         data = []
         for i in result:
             del i['_id']
+            
             data.append(i)
         res = {"result": data}
         status = "200 OK"
@@ -10071,6 +10080,8 @@ def storage_container_cell():
         2. 审批后（样本状态:'正常');
     """
     data = request.form
+    now = datetime.datetime.now()
+    outTime = now.strftime("%Y-%m-%d %H:%M:%S")
     client = MongoClient(host='localhost', port=27017)
     try:
         for cell in data:
@@ -10079,14 +10090,25 @@ def storage_container_cell():
                     '入库状态':'审核中'
                 }}
                 client['bioSample']['collections'].update_many({
-                    '样本源编号':cell,
+                    '样本编号':cell,
                 },newData)
                 result = client['bioSample']['collections'].find({
-                    '样本源编号':cell,
+                    '样本编号':cell,
                 })
                 change_data = result[0]
                 del change_data['_id']
+                del change_data['采集状态']
+                del change_data['运输状态']
+                del change_data['接收状态']
+                del change_data['负责人']
+                del change_data['负责人联系方式']
+                del change_data['运出时间']
+                del change_data['运输方']
+                del change_data['接收人']
+                del change_data['接收人联系方式']
+                del change_data['接收时间']
                 change_data['位置'] = data[cell]
+                change_data['审批时间'] = outTime
                 change_data['用户信息'] = data['name']
                 change_data['操作'] = '样本入库'
                 client['bioSample']['examine'].insert_one(change_data)
@@ -10101,7 +10123,7 @@ def storage_container_cell():
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
 
-
+# 转移审核
 @bp.route('/container_cell/trans/', methods=['POST'])
 def trans_contaniner_cell():
     """
@@ -10128,10 +10150,11 @@ def trans_contaniner_cell():
     oldData = json.loads(request.json.get('oldData'))
     newData = json.loads(request.json.get('newData'))
     client = MongoClient(host='localhost', port=27017)
-
+    now = datetime.datetime.now()
+    outTime = now.strftime("%Y-%m-%d %H:%M:%S")     
     for index in range(len(oldData['样本信息'])):
         mongo = client['bioSample']['container'].find({
-            '样本源编号':oldData['样本信息'][index]['样本源编号']
+            '样本编号':oldData['样本信息'][index]['样本编号']
         })
         result = mongo[0]
         del result['_id']
@@ -10139,6 +10162,7 @@ def trans_contaniner_cell():
         result['用户信息'] = oldData['用户信息']
         result['操作'] = '样本转移'
         result['入库状态'] = '审核中'
+        result['审批时间'] = outTime
         client['bioSample']['examine'].insert_one(result)
 
         # newData = {"$set":{'位置':newData['位置'][1:]}}

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from pymongo import MongoClient
 import datetime
+import time
 import json
 bp = Blueprint('examine_bp', __name__, url_prefix='')
 
@@ -49,10 +50,13 @@ def get_container_data():
 
 @bp.route('/examine/', methods=['POST'])
 def examine_data():
-    ynb_num = request.form['样本源编号']
+    ynb_num = request.form['样本编号']
     operation = request.form['操作']
     username = request.form['用户信息']
     state = request.form['样本状态']
+    time = request.form['审批时间']
+    now = datetime.datetime.now()
+    outTime = now.strftime("%Y-%m-%d %H:%M:%S")
     client = MongoClient(host='localhost', port=27017)
 
     try:
@@ -63,49 +67,45 @@ def examine_data():
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 },newData)
+
                 # 删除待入库数据库中的数据
                 client['bioSample']['collections'].delete_one({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                 })
                 # 将数据 加入 入库数据库中 添加入库时间
                 mongo = client['bioSample']['examine'].find({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 })
                 result = []
                 for i in mongo:
+                    print(i)
                     del i['_id']
-                    del i['采集状态']
-                    del i['运输状态']
-                    del i['接收状态']
-                    del i['负责人']
-                    del i['负责人联系方式']
-                    del i['运出时间']
-                    del i['运输方']
-                    del i['接收人']
-                    del i['接收人联系方式']
-                    del i['接收时间']
                     del i['用户信息']
                     del i['操作']
-                    i['入库时间'] = datetime.datetime.fromtimestamp(1234567896)
+                    i['入库时间'] = outTime
                     result.append(i)
                 if result:
                     client['bioSample']['container'].insert_one(result[0])
-                    
             else:
                 newData = {"$set":{
                 '入库状态':'审核拒绝'
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
                     '用户信息':username
+                },newData)
+                client['bioSample']['collections'].update_many({
+                    '样本编号':ynb_num,
                 },newData)
         elif operation == '样本出库':
             if state == '通过':
@@ -114,24 +114,30 @@ def examine_data():
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 },newData)
 
                 mongo = client['bioSample']['examine'].find({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 })
                 choose_data = mongo[0]
                 del choose_data['_id']
+                choose_data['测序状态'] = '已送样'
                 # 若为验证分析即删除，若为组学分析加入 分析数据库
                 if choose_data['研究用途'] == '组织细胞分子等实验验证':
                     client['bioSample']['container'].delete_one({
-                        '样本源编号':ynb_num,
+                        '样本编号':ynb_num,
                     })
                 else:
+                    client['bioSample']['container'].delete_one({
+                        '样本编号':ynb_num,
+                    })
                     client['bioSample']['analyze'].insert_one(choose_data)
             else:
                 newData = {"$set":{
@@ -139,10 +145,11 @@ def examine_data():
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
-                },newData)
+                    '用户信息':username,
+                    '审批时间':time
+                },newData)         
         elif operation == '样本废弃':
             if state == '通过':
                 newData = {"$set":{
@@ -150,14 +157,15 @@ def examine_data():
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 },newData)
 
                 # 删除 入库数据库的数据
                 client['bioSample']['container'].delete_one({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                 })
             else:
                 newData = {"$set":{
@@ -165,38 +173,49 @@ def examine_data():
                 }}
                 # 审核数据库中修改state
                 client['bioSample']['examine'].update_many({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
+                    '用户信息':username,
+                    '审批时间':time
                 },newData)
         elif operation == '样本转移':
             
             # 审核库中 状态变更
-           
-            client['bioSample']['examine'].update_many({
-                '样本源编号':ynb_num,
-                '操作':operation,
-                '用户信息':username
-            },{"$set":{
-                '入库状态':'已转移'
-                }})
-
-            # 数据库中 位置变更
-            mongo = client['bioSample']['examine'].find({
-                    '样本源编号':ynb_num,
+            if state == '通过':
+                client['bioSample']['examine'].update_many({
+                    '样本编号':ynb_num,
                     '操作':operation,
-                    '用户信息':username
-                })
-            newData = {"$set":{
-                '位置': mongo[0]['新位置']
+                    '用户信息':username,
+                        '审批时间':time
+                },{"$set":{
+                    '入库状态':'已转移'
+                    }})
+
+                # 数据库中 位置变更
+                mongo = client['bioSample']['examine'].find({
+                        '样本编号':ynb_num,
+                        '操作':operation,
+                        '用户信息':username,
+                        '审批时间':time
+                    })
+                newData = {"$set":{
+                    '位置': mongo[0]['新位置']
+                    }}
+                    # 审核数据库中修改state
+                client['bioSample']['container'].update_many({
+                    '样本编号':ynb_num,
+                },newData)
+            else:
+                newData = {"$set":{
+                '入库状态':'审核拒绝'
                 }}
                 # 审核数据库中修改state
-            client['bioSample']['container'].update_many({
-                '样本源编号':ynb_num,
-            },newData)
-            
-            
-
+                client['bioSample']['examine'].update_many({
+                    '样本编号':ynb_num,
+                    '操作':operation,
+                    '用户信息':username,
+                    '审批时间':time
+                },newData)
         res = {'result':'success'}
         status = '200 OK'
     except Exception as err:
@@ -210,12 +229,12 @@ def examine_data():
 
 @bp.route('/examine/del', methods=['POST'])
 def examine_del():
-    ynb_num = request.form['样本源编号']
+    ynb_num = request.form['样本编号']
     operation = request.form['操作']
     username = request.form['用户信息']
     client = MongoClient(host='localhost', port=27017)
     client['bioSample']['examine'].delete_one({
-                    '样本源编号':ynb_num,
+                    '样本编号':ynb_num,
                     '操作':operation,
                     '用户信息':username
                 })
@@ -225,7 +244,6 @@ def examine_del():
     resp.status = status
     resp.headers['ACCESS-CONTROL-ALLOW-ORIGIN'] = '*'
     return resp
-
 
 
 @bp.route('/hosSearch/', methods=['POST'])
