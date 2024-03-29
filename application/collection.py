@@ -235,14 +235,13 @@ def accept():
 @bp.route('/info/', methods=['POST'])
 def singleInfo():
     """
-        通过样本源编号、采集内容、采集医院查找要展示的样本
+        通过样本编号查找要展示的样本
         {
-            "样本源编号": "ZSFY-TT-21000009-K-01",
-            "采集医院": "浙江大学医学院附属第四医院"
+            "样本编号": "TZYY-QT1-20240328-2"
         }
     """
     doc = {}
-    doc["样本源编号"] = request.form["样本源编号"]
+    doc["样本编号"] = request.form["样本编号"]
     client = MongoClient(
         host = current_app.config["DB_HOST"], port = current_app.config["DB_PORT"]
     )
